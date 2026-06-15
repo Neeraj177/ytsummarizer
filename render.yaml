@@ -1,0 +1,46 @@
+services:
+  # 1. PostgreSQL Database Service
+  - type: database
+    name: ytsummarizer-db
+    runtime: postgres
+    plan: free
+    ipAllowList: []
+
+  # 2. Spring Boot Backend Web Service
+  - type: web
+    name: ytsummarizer-backend
+    runtime: docker
+    plan: free
+    # 🚀 FIX: Root se backend folder ka exact context point kiya hai
+    dockerContext: ./ytsummarizer
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: ytsummarizer-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: ytsummarizer-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: ytsummarizer-db
+          property: password
+      - key: GEMINI_API_KEY
+        value: "PLACEHOLDER_KEY" # ◄── Tumhari updated key yahan rahegi bhai
+
+  # 3. Vite-React Frontend Service
+  - type: web
+    name: ytsummarizer-frontend
+    runtime: docker
+    plan: free
+    # 🚀 FIX: Frontend nested folder structure ka exact path context lock kiya hai
+    dockerContext: ./yt-summarizer-frontend/yt-summarizer
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: ytsummarizer-backend
+          property: url

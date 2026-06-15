@@ -1,0 +1,51 @@
+services:
+  # 1. Database Container (PostgreSQL)
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: ytsummarizer-db
+    environment:
+      POSTGRES_DB: ytsummarizer
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - yt-network
+
+  # 2. Spring Boot Backend Container
+  backend:
+    build:
+      context: ./ytsummarizer/ytsummarizer # ◄── FIX: Nested folder ka path de diya
+    container_name: ytsummarizer-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/ytsummarizer
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=your_secure_password
+      - GOOGLE_GENAI_API_KEY=your_actual_gemini_api_key_here # ◄── Apni original API Key dalo
+    depends_on:
+      - postgres-db
+    networks:
+      - yt-network
+
+  # 3. React Frontend Container
+  frontend:
+    build:
+      context: ./yt-summarizer-frontend/yt-summarizer # ◄── Yeh humne pehle fix kiya tha
+    container_name: ytsummarizer-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - yt-network
+
+volumes:
+  pgdata:
+
+networks:
+  yt-network:
+    driver: bridge

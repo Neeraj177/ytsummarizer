@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ytsummarizer
+    username: root
+    password: root
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Live Spring AI configuration linked to Google Gemini
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:PLACEHOLDER_KEY}
+        chat:
+          options:
+            model: gemini-2.5-flash   # ← cheapest, fastest, free tier friendly
+          retry:
+            max-attempts: 1
+#
