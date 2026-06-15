@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link2, AlertTriangle, Sparkles } from "lucide-react";
 import YouTubeLogo from "./YouTubeLogo";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://ytsummarizer-backend-20ho.onrender.com";
 
 export default function LandingView({ onJobCreated }) {
   const [url, setUrl] = useState("");

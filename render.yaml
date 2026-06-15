@@ -1,25 +1,20 @@
-# 1. Managed Databases Section
 databases:
   - name: ytsummarizer-db
-    databaseName: ytsummarizer
-    user: neeraj
     plan: free
     ipAllowList: []
 
-# 2. Web Services Section
 services:
-  # Spring Boot Backend Web Service
   - type: web
     name: ytsummarizer-backend
-    runtime: docker            # ◄── FIX: 'dockerK' se vapas 'docker' kar diya
+    runtime: docker
     plan: free
-    dockerContext: ./ytsummarizer
-    dockerfilePath: Dockerfile
+    dockerContext: ./ytsummarizer/ytsummarizer
+    dockerfilePath: ./ytsummarizer/ytsummarizer/Dockerfile
     envVars:
       - key: SPRING_DATASOURCE_URL
         fromDatabase:
           name: ytsummarizer-db
-          property: connectionString
+          property: jdbcConnectionString
       - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
           name: ytsummarizer-db
@@ -31,16 +26,15 @@ services:
       - key: GEMINI_API_KEY
         value: "PLACEHOLDER_KEY"
 
-  # Vite-React Frontend Service
   - type: web
     name: ytsummarizer-frontend
     runtime: docker
     plan: free
     dockerContext: ./yt-summarizer-frontend/yt-summarizer
-    dockerfilePath: Dockerfile
+    dockerfilePath: ./yt-summarizer-frontend/yt-summarizer/Dockerfile
     envVars:
       - key: VITE_API_BASE_URL
         fromService:
           type: web
           name: ytsummarizer-backend
-          property: url
+          property: host

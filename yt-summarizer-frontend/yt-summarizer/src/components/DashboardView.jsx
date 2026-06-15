@@ -4,7 +4,7 @@ import SummaryPanel from "./SummaryPanel";
 import ChatPanel from "./ChatPanel";
 import YouTubeLogo from "./YouTubeLogo";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://ytsummarizer-backend-20ho.onrender.com";
 const POLL_INTERVAL = 4000;
 
 export default function DashboardView({ initialJob, videoUrl, onBack }) {

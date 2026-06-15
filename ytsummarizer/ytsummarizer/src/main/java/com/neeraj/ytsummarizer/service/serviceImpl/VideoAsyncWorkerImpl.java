@@ -51,23 +51,11 @@ public class VideoAsyncWorkerImpl implements VideoAsyncWorker {
                 System.out.println("[" + Thread.currentThread().getName() + "] Subtitles found! Length: " + liveExtractedTranscript.length() + ". Contacting Gemini Text Model...");
                 finalSummaryResult = aiSummarizerService.generateSummary(liveExtractedTranscript);
             } else {
-                // 🚀 SCENARIO B: No Subtitles -> SKIP AUDIO LAYER COMPLETELY -> DIRECT JUMP TO VISION!
-                System.out.println("[" + Thread.currentThread().getName() + "] No subtitles track detected. Directly skipping Audio Layer and jumping to Multi-modal Vision Frame Parser...");
+                // 🚀 SCENARIO B: No Subtitles -> Direct YouTube URL to Gemini Flash
+                System.out.println("[" + Thread.currentThread().getName() + "] No subtitles found. Sending YouTube URL directly to Gemini...");
 
-                // Trigger yt-dlp to extract temporary frame snapshots (.jpg) every 10 seconds
-                List<File> extractedFrames = com.neeraj.ytsummarizer.util.VideoVisionExtractor.extractVideoFrames(job.getVideoId());
-
-                if (extractedFrames != null && !extractedFrames.isEmpty()) {
-                    System.out.println("[" + Thread.currentThread().getName() + "] Sending " + extractedFrames.size() + " frames payload to Google Gemini Vision Model...");
-
-                    // Trigger your clean Builder-pattern based Vision Engine!
-                    finalSummaryResult = aiSummarizerService.generateVisualSummary(extractedFrames);
-
-                    // Safe clean up to delete images from the temporary OS storage folder
-                    com.neeraj.ytsummarizer.util.VideoVisionExtractor.cleanUpFrames(extractedFrames);
-                } else {
-                    finalSummaryResult = "### ⚠️ Pipeline Failure\nIs video ke visual frames extract nahi ho paaye aur subtitles bhi available nahi the.";
-                }
+                String youtubeUrl = "https://www.youtube.com/watch?v=" + job.getVideoId();
+                finalSummaryResult = aiSummarizerService.generateSummary(youtubeUrl);
             }
 
             // 3. Final database entry compilation

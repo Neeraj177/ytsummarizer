@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Send, Bot, Sparkles } from "lucide-react";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://ytsummarizer-backend-20ho.onrender.com";
 
 const ThinkingIndicator = () => (
   <div className="flex items-start gap-3 fade-in">

@@ -26,10 +26,9 @@ public class AiSummarizerServiceImpl implements AiSummarizerService {
     }
 
     @Override
-    public String generateSummary(String videoTranscript) {
-        if (videoTranscript == null || videoTranscript.trim().isEmpty()) {
-            return "No transcript content available to summarize.";
-        }
+    public String generateSummary(String input) {  if (input == null || input.trim().isEmpty()) {
+        return "No content available to summarize.";
+    }
 
         String systemPrompt = """
     You are an expert technical content summarizer. Your job is to analyze the provided YouTube video transcript 
@@ -55,8 +54,14 @@ public class AiSummarizerServiceImpl implements AiSummarizerService {
     Ensure your output uses clean markdown headers, bold text, and bullet points. Do not include conversational introductory text.
     """;
 
-        // ❌ REMOVED the try/catch — let exceptions bubble up to the worker
-        String fullPrompt = systemPrompt + "\n\nHere is the video transcript:\n" + videoTranscript;
+        String fullPrompt;
+
+        // YouTube URL hai ya transcript?
+        if (input.startsWith("https://www.youtube.com")) {
+            fullPrompt = systemPrompt + "\n\nPlease summarize this YouTube video: " + input;
+        } else {
+            fullPrompt = systemPrompt + "\n\nHere is the video transcript:\n" + input;
+        }
 
         return chatModel.call(new Prompt(fullPrompt))
                 .getResult()
