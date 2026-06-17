@@ -27,6 +27,7 @@ public class VideoVisionExtractor {
             // 🚀 Step 1 — Download video with yt-dlp (Failsafe Windows command selection)
             String osName = System.getProperty("os.name").toLowerCase();
             String dlpCommand = osName.contains("win") ? "yt-dlp.exe" : "yt-dlp";
+            String cookiesPath = osName.contains("win") ? "" : "/etc/secrets/cookies.txt";
 
             System.out.println("[Vision-Engine] Executing video download via: " + dlpCommand);
 
@@ -34,6 +35,7 @@ public class VideoVisionExtractor {
                     dlpCommand,
                     "-f", "worst[ext=mp4]/worst",
                     "--no-playlist",
+                    "--cookies", "/etc/secrets/cookies.txt",
                     "-o", videoPath,
                     "https://www.youtube.com/watch?v=" + videoId
             );

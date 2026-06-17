@@ -13,12 +13,14 @@ public class YouTubeTranscriptExtractor {
 
             String osName = System.getProperty("os.name").toLowerCase();
             String pythonCmd = osName.contains("win") ? "python" : "python3";
+            String cookiesPath = osName.contains("win") ? "" : "/etc/secrets/cookies.txt";
 
             // CC + Auto-generated dono try karega automatically
             ProcessBuilder pb = new ProcessBuilder(
                     pythonCmd, "-m", "youtube_transcript_api",
                     videoId,
-                    "--languages", "en", "hi", "en-IN"
+                    "--languages", "en", "hi", "en-IN" ,
+                    "--cookies", "/etc/secrets/cookies.txt"
             );
 
             Map<String, String> env = pb.environment();
