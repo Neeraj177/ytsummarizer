@@ -28,44 +28,42 @@ public class VideoAsyncWorkerImpl implements VideoAsyncWorker {
     @Async("videoJobExecutor")
     public void processVideoAsynchronously(UUID jobId) {
         try {
-            // 1. Mark the job state as PROCESSING in PostgreSQL
             VideoJob job = videoJobRepository.findById(jobId)
-                    .orElseThrow(() -> new RuntimeException("Job execution task context not found for ID: " + jobId));
+                    .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
 
             job.setStatus(JobStatus.PROCESSING);
             videoJobRepository.save(job);
-            System.out.println("[" + Thread.currentThread().getName() + "] Job " + jobId + " advanced to PROCESSING status.");
+            System.out.println("[" + Thread.currentThread().getName() + "] Job " + jobId + " → PROCESSING");
 
-            // 🚀 STRATEGY 1: Extract subtitles track directly
-            System.out.println("[" + Thread.currentThread().getName() + "] Scraping closed captions track for videoId: " + job.getVideoId());
+            String transcript = com.neeraj.ytsummarizer.util.YouTubeTranscriptExtractor
+                    .getTranscriptByVideoId(job.getVideoId());
 
-            // Yahan temporary testing ke liye agar tum ise "" rakhna chaho toh rakh sakte ho, 
-            // Varna live production ke liye original script use hogi:
-            String liveExtractedTranscript = com.neeraj.ytsummarizer.util.YouTubeTranscriptExtractor.getTranscriptByVideoId(job.getVideoId());
-//            String liveExtractedTranscript = "";
+            String finalSummaryResult;
 
-            String finalSummaryResult = "";
-
-            if (liveExtractedTranscript != null && !liveExtractedTranscript.trim().isEmpty()) {
-                // Scenario A: Subtitles mil gaye -> Run standard Gemini Text Model
-                System.out.println("[" + Thread.currentThread().getName() + "] Subtitles found! Length: " + liveExtractedTranscript.length() + ". Contacting Gemini Text Model...");
-                finalSummaryResult = aiSummarizerService.generateSummary(liveExtractedTranscript);
+            if (transcript != null && !transcript.trim().isEmpty()) {
+                // ✅ Scenario A: Captions mile (CC ya Auto-generated)
+                System.out.println("[" + Thread.currentThread().getName() + "] Captions found! Sending to Gemini...");
+                finalSummaryResult = aiSummarizerService.generateSummary(transcript);
             } else {
-                // 🚀 SCENARIO B: No Subtitles -> Direct YouTube URL to Gemini Flash
-                System.out.println("[" + Thread.currentThread().getName() + "] No subtitles found. Sending YouTube URL directly to Gemini...");
+                // ✅ Scenario B: No captions → Frame extraction
+                System.out.println("[" + Thread.currentThread().getName() + "] No captions. Starting frame extraction...");
 
-                String youtubeUrl = "https://www.youtube.com/watch?v=" + job.getVideoId();
-                finalSummaryResult = aiSummarizerService.generateSummary(youtubeUrl);
+                List<File> extractedFrames = com.neeraj.ytsummarizer.util.VideoVisionExtractor
+                        .extractVideoFrames(job.getVideoId());
+
+                if (extractedFrames != null && !extractedFrames.isEmpty()) {
+                    System.out.println("[" + Thread.currentThread().getName() + "] Sending "
+                            + extractedFrames.size() + " frames to Gemini Vision...");
+                    finalSummaryResult = aiSummarizerService.generateVisualSummary(extractedFrames);
+                    com.neeraj.ytsummarizer.util.VideoVisionExtractor.cleanUpFrames(extractedFrames);
+                } else {
+                    finalSummaryResult = "### ⚠️ Pipeline Failure\nFrames extract nahi ho paaye aur captions bhi nahi mile.";
+                }
             }
 
-            // 3. Final database entry compilation
             job.setSummary(finalSummaryResult);
-            if (finalSummaryResult.contains("### ⚠️ Pipeline Failure")) {
-                job.setStatus(JobStatus.FAILED);
-            } else {
-                job.setStatus(JobStatus.COMPLETED);
-            }
-
+            job.setStatus(finalSummaryResult.contains("### ⚠️ Pipeline Failure")
+                    ? JobStatus.FAILED : JobStatus.COMPLETED);
             videoJobRepository.save(job);
             System.out.println("[" + Thread.currentThread().getName() + "] Job " + jobId + " → " + job.getStatus());
 

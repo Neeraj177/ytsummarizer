@@ -14,10 +14,11 @@ public class YouTubeTranscriptExtractor {
             String osName = System.getProperty("os.name").toLowerCase();
             String pythonCmd = osName.contains("win") ? "python" : "python3";
 
+            // CC + Auto-generated dono try karega automatically
             ProcessBuilder pb = new ProcessBuilder(
                     pythonCmd, "-m", "youtube_transcript_api",
                     videoId,
-                    "--languages", "en", "hi"
+                    "--languages", "en", "hi", "en-IN"
             );
 
             Map<String, String> env = pb.environment();
@@ -44,7 +45,8 @@ public class YouTubeTranscriptExtractor {
             reader.close();
 
             StringBuilder errorLog = new StringBuilder();
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream(), "UTF-8"));
+            BufferedReader errorReader = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream(), "UTF-8"));
             String errLine;
             while ((errLine = errorReader.readLine()) != null) {
                 errorLog.append(errLine).append("\n");
@@ -63,14 +65,15 @@ public class YouTubeTranscriptExtractor {
                     result.contains("YouTubeTranscriptApi") ||
                     result.contains("Subtitles are disabled") ||
                     result.contains("raised")) {
-                System.out.println("[Transcript-Extractor] IP block or error detected. Triggering Scenario B...");
+                System.out.println("[Transcript-Extractor] No captions found. Triggering Frame Extraction...");
                 return "";
             }
 
+            System.out.println("[Transcript-Extractor] Captions found! Length: " + result.length());
             return result;
 
         } catch (Exception e) {
-            System.err.println("Failed to execute native python transcription CLI layer: " + e.getMessage());
+            System.err.println("[Transcript-Extractor] Error: " + e.getMessage());
             return "";
         }
     }

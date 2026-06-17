@@ -26,44 +26,23 @@ public class AiSummarizerServiceImpl implements AiSummarizerService {
     }
 
     @Override
-    public String generateSummary(String input) {  if (input == null || input.trim().isEmpty()) {
-        return "No content available to summarize.";
-    }
-
-        String systemPrompt = """
-    You are an expert technical content summarizer. Your job is to analyze the provided YouTube video transcript 
-    and generate a clean, professional, and well-structured markdown summary.
-    
-    CRITICAL NOTE: The transcript might be auto-generated or written in Hindi, English, or a mix of both (Hinglish). 
-    Regardless of the input language, you must understand the core context and ALWAYS generate the final summary 
-    strictly in English.
-    
-    Follow this structural schema strictly:
-    # [Professional Video Title Placeholder/Theme]
-    
-    ## 📌 Executive Summary
-    - A concise 2-3 sentence overview of what the video covers.
-    
-    ## 🔑 Key Takeaways
-    - Bullet points highlighting the core concepts, frameworks, or insights discussed.
-    - Bold key architectural terms or technical definitions.
-    
-    ## 💻 Technical Stack / Tools Mentioned (If applicable)
-    - List any specific programming languages, libraries, databases, or frameworks referenced.
-    
-    Ensure your output uses clean markdown headers, bold text, and bullet points. Do not include conversational introductory text.
-    """;
-
-        String fullPrompt;
-
-        // YouTube URL hai ya transcript?
-        if (input.startsWith("https://www.youtube.com")) {
-            fullPrompt = systemPrompt + "\n\nPlease summarize this YouTube video: " + input;
-        } else {
-            fullPrompt = systemPrompt + "\n\nHere is the video transcript:\n" + input;
+    public String generateSummary(String transcript) {
+        if (transcript == null || transcript.trim().isEmpty()) {
+            return "No content available to summarize.";
         }
 
-        return chatModel.call(new Prompt(fullPrompt))
+        String prompt = """
+    You are an expert content summarizer. Analyze the provided video transcript and generate a response in this exact format:
+    
+    ## 📌 Summary
+    Write a detailed paragraph covering everything discussed in the video. Include all main points, 
+    examples, explanations, and conclusions. This should be comprehensive enough that someone who 
+    hasn't watched the video understands the complete content. Write in English regardless of transcript language.
+    
+    ## 📝 Full Transcript
+    """ + transcript;
+
+        return chatModel.call(new Prompt(prompt))
                 .getResult()
                 .getOutput()
                 .getText();
