@@ -22,13 +22,12 @@ public class VideoController {
 
     @PostMapping("/process")
     public ResponseEntity<JobStatusResponse> processVideo(@RequestBody VideoRequest request) {
-        // Dummy user ID for Phase 1 (We will wire actual User Accounts up to this in Phase 4)
         UUID defaultUserId = UUID.fromString("00000000-0000-0000-0000-000000000000");
-
-        // Initialize the job record in PostgreSQL and kick off the async processing thread
-        JobStatusResponse response = pipelineService.initializeJob(request.getUrl(), defaultUserId);
-
-        // Return 202 Accepted because the heavy lifting happens asynchronously in the background
+        JobStatusResponse response = pipelineService.initializeJob(
+                request.getUrl(),
+                request.getTranscript(), // ← transcript pass karo
+                defaultUserId
+        );
         return ResponseEntity.accepted().body(response);
     }
 

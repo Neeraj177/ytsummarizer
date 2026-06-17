@@ -80,4 +80,53 @@ public class VideoAsyncWorkerImpl implements VideoAsyncWorker {
             videoJobRepository.save(job);
         });
     }
+    @Override
+    @Async("videoJobExecutor")
+    public void processVideoAsynchronously(UUID jobId, String transcript) {
+        try {
+            VideoJob job = videoJobRepository.findById(jobId)
+                    .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
+
+            job.setStatus(JobStatus.PROCESSING);
+            videoJobRepository.save(job);
+
+            String finalSummaryResult;
+
+            if (transcript != null && !transcript.trim().isEmpty()) {
+                // ✅ Frontend se transcript aaya — seedha Gemini ko do
+                System.out.println("[Worker] Frontend transcript received! Length: " + transcript.length());
+                finalSummaryResult = aiSummarizerService.generateSummary(transcript);
+            } else {
+                // Backend se extract karo
+                String liveTranscript = com.neeraj.ytsummarizer.util.YouTubeTranscriptExtractor
+                        .getTranscriptByVideoId(job.getVideoId());
+
+                if (liveTranscript != null && !liveTranscript.trim().isEmpty()) {
+                    System.out.println("[Worker] Backend transcript found! Length: " + liveTranscript.length());
+                    finalSummaryResult = aiSummarizerService.generateSummary(liveTranscript);
+                } else {
+                    // Frame extraction
+                    System.out.println("[Worker] No transcript. Starting frame extraction...");
+                    List<File> extractedFrames = com.neeraj.ytsummarizer.util.VideoVisionExtractor
+                            .extractVideoFrames(job.getVideoId());
+
+                    if (extractedFrames != null && !extractedFrames.isEmpty()) {
+                        finalSummaryResult = aiSummarizerService.generateVisualSummary(extractedFrames);
+                        com.neeraj.ytsummarizer.util.VideoVisionExtractor.cleanUpFrames(extractedFrames);
+                    } else {
+                        finalSummaryResult = "### ⚠️ Pipeline Failure\nFrames extract nahi ho paaye.";
+                    }
+                }
+            }
+
+            job.setSummary(finalSummaryResult);
+            job.setStatus(finalSummaryResult.contains("### ⚠️ Pipeline Failure")
+                    ? JobStatus.FAILED : JobStatus.COMPLETED);
+            videoJobRepository.save(job);
+
+        } catch (Exception e) {
+            System.err.println("Critical failure for job " + jobId + ": " + e.getMessage());
+            markJobFailed(jobId, e.getMessage());
+        }
+    }
 }

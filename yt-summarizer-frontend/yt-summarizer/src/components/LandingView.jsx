@@ -4,6 +4,11 @@ import YouTubeLogo from "./YouTubeLogo";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://ytsummarizer-backend-20ho.onrender.com";
 
+function extractVideoId(url) {
+  const match = url.match(/(?:v=|youtu\.be\/)([^&\n?#]+)/);
+  return match ? match[1] : null;
+}
+
 export default function LandingView({ onJobCreated }) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,10 +21,35 @@ export default function LandingView({ onJobCreated }) {
     setLoading(true);
 
     try {
+      const videoId = extractVideoId(url.trim());
+      let transcript = "";
+
+      // Browser se transcript fetch karo
+      if (videoId) {
+        try {
+          const proxyRes = await fetch(
+            `https://corsproxy.io/?https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3`
+          );
+          if (proxyRes.ok) {
+            const ytData = await proxyRes.json();
+            transcript = ytData?.events
+              ?.map(ev => ev.segs?.map(s => s.utf8).join(""))
+              .filter(Boolean)
+              .join(" ") || "";
+            console.log("Transcript fetched! Length:", transcript.length);
+          }
+        } catch (e) {
+          console.log("Browser transcript fetch failed, backend will handle");
+        }
+      }
+
       const res = await fetch(`${API_BASE}/api/videos/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({
+          url: url.trim(),
+          transcript: transcript || null
+        }),
       });
 
       if (!res.ok) {
@@ -31,7 +61,7 @@ export default function LandingView({ onJobCreated }) {
       onJobCreated(data, url.trim());
     } catch (err) {
       if (err.message.includes("Failed to fetch") || err.message.includes("NetworkError")) {
-        setError("Cannot reach the backend server at localhost:8080. Ensure your Spring Boot application is running.");
+        setError("Cannot reach the backend server. Ensure your Spring Boot application is running.");
       } else {
         setError(err.message || "Something went wrong. Please try again.");
       }

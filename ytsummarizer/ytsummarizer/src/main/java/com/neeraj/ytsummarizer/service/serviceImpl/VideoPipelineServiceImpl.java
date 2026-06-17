@@ -74,4 +74,27 @@ public class VideoPipelineServiceImpl implements VideoPipelineService {
         }
         throw new IllegalArgumentException("Invalid YouTube URL structure provided");
     }
+    @Override
+    public JobStatusResponse initializeJob(String youtubeUrl, String transcript, UUID userId) {
+        String videoId = extractVideoId(youtubeUrl);
+
+        VideoJob job = VideoJob.builder()
+                .userId(userId)
+                .youtubeUrl(youtubeUrl)
+                .videoId(videoId)
+                .status(JobStatus.PENDING)
+                .build();
+
+        VideoJob savedJob = videoJobRepository.save(job);
+
+        // transcript ke saath async worker call karo
+        asyncWorker.processVideoAsynchronously(savedJob.getId(), transcript);
+
+        return JobStatusResponse.builder()
+                .jobId(savedJob.getId())
+                .videoId(savedJob.getVideoId())
+                .status(savedJob.getStatus())
+                .summary(savedJob.getSummary())
+                .build();
+    }
 }

@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class VideoRequest {
     private String url;
+    private String transcript; // ← Yeh add karo
 }
