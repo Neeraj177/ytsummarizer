@@ -13,14 +13,25 @@ public class YouTubeTranscriptExtractor {
 
             String osName = System.getProperty("os.name").toLowerCase();
             String pythonCmd = osName.contains("win") ? "python" : "python3";
-            String cookiesPath = osName.contains("win") ? "" : "/etc/secrets/cookies.txt";
+            // Cookies file ko writable location pe copy karo
+            String cookiesSource = "/etc/secrets/cookies.txt";
+            String writableCookies = "/tmp/cookies.txt";
+            try {
+                java.nio.file.Files.copy(
+                        java.nio.file.Paths.get(cookiesSource),
+                        java.nio.file.Paths.get(writableCookies),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                );
+            } catch (Exception e) {
+                System.out.println("[Transcript-Extractor] Cookies copy failed: " + e.getMessage());
+            }
 
             // CC + Auto-generated dono try karega automatically
             ProcessBuilder pb = new ProcessBuilder(
                     pythonCmd, "-m", "youtube_transcript_api",
                     videoId,
                     "--languages", "en", "hi", "en-IN" ,
-                    "--cookies", "/etc/secrets/cookies.txt"
+                    "--cookies", "/tmp/cookies.txt"
             );
 
             Map<String, String> env = pb.environment();
