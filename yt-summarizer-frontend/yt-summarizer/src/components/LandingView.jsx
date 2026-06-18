@@ -27,19 +27,35 @@ export default function LandingView({ onJobCreated }) {
       // Browser se transcript fetch karo
       if (videoId) {
         try {
-          const proxyRes = await fetch(
-            `https://corsproxy.io/?https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3`
-          );
-          if (proxyRes.ok) {
-            const ytData = await proxyRes.json();
-            transcript = ytData?.events
-              ?.map(ev => ev.segs?.map(s => s.utf8).join(""))
-              .filter(Boolean)
-              .join(" ") || "";
-            console.log("Transcript fetched! Length:", transcript.length);
+          const urls = [
+            `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3&xorb=2&xobt=3&xovt=3`,
+            `https://www.youtube.com/api/timedtext?v=${videoId}&lang=hi&fmt=json3`,
+            `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en-US&fmt=json3`,
+          ];
+
+          for (const timedUrl of urls) {
+            try {
+              const res = await fetch(timedUrl, { credentials: "include" });
+              if (res.ok) {
+                const text = await res.text();
+                if (text && text.length > 50) {
+                  const ytData = JSON.parse(text);
+                  transcript = ytData?.events
+                    ?.map(ev => ev.segs?.map(s => s.utf8).join(""))
+                    .filter(Boolean)
+                    .join(" ") || "";
+                  if (transcript.length > 0) {
+                    console.log("Transcript fetched! Length:", transcript.length);
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              console.log("URL failed:", timedUrl);
+            }
           }
         } catch (e) {
-          console.log("Browser transcript fetch failed, backend will handle");
+          console.log("Transcript fetch failed, backend will handle");
         }
       }
 

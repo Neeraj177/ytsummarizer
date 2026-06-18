@@ -38,7 +38,8 @@ public class AiSummarizerServiceImpl implements AiSummarizerService {
     Write a detailed paragraph covering everything discussed in the video. Include all main points, 
     examples, explanations, and conclusions. This should be comprehensive enough that someone who 
     hasn't watched the video understands the complete content. Write in English regardless of transcript language.
-    
+    And if the transcript is in english give the content in english and hinglish mix and if it is in hindi give it in hinglish 
+    and give the full Transcript in the end which is processed .
     ## 📝 Full Transcript
     """ + transcript;
 

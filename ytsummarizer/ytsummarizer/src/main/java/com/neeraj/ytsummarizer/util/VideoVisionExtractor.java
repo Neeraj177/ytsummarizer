@@ -27,17 +27,6 @@ public class VideoVisionExtractor {
             // 🚀 Step 1 — Download video with yt-dlp (Failsafe Windows command selection)
             String osName = System.getProperty("os.name").toLowerCase();
             String dlpCommand = osName.contains("win") ? "yt-dlp.exe" : "yt-dlp";
-            String cookiesPath = "/etc/secrets/cookies.txt";
-            String writableCookies = "/tmp/cookies.txt";
-            try {
-                java.nio.file.Files.copy(
-                        java.nio.file.Paths.get(cookiesPath),
-                        java.nio.file.Paths.get(writableCookies),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (Exception e) {
-                System.out.println("[Vision-Engine] Cookies copy failed: " + e.getMessage());
-            }
 
             System.out.println("[Vision-Engine] Executing video download via: " + dlpCommand);
 
@@ -45,7 +34,6 @@ public class VideoVisionExtractor {
                     dlpCommand,
                     "-f", "worst[ext=mp4]/worst",
                     "--no-playlist",
-                    "--cookies", "/tmp/cookies.txt",
                     "-o", videoPath,
                     "https://www.youtube.com/watch?v=" + videoId
             );
