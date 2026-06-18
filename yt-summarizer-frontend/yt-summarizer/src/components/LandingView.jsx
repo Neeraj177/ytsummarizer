@@ -27,17 +27,21 @@ export default function LandingView({ onJobCreated }) {
       // Browser se transcript fetch karo
       if (videoId) {
         try {
-          const urls = [
-            `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3&xorb=2&xobt=3&xovt=3`,
-            `https://www.youtube.com/api/timedtext?v=${videoId}&lang=hi&fmt=json3`,
-            `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en-US&fmt=json3`,
-          ];
+        const urls = [
+          `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3&kind=asr`,  // auto-generated
+          `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3`,
+          `https://www.youtube.com/api/timedtext?v=${videoId}&lang=hi&fmt=json3&kind=asr`,
+          `https://www.youtube.com/api/timedtext?v=${videoId}&lang=hi&fmt=json3`,
+        ];
 
           for (const timedUrl of urls) {
             try {
+                 console.log("Trying URL:", timedUrl); // ← add karo
               const res = await fetch(timedUrl, { credentials: "include" });
+                console.log("Response status:", res.status); // ← add karo
               if (res.ok) {
                 const text = await res.text();
+                  console.log("Response text length:", text.length); // ← add karo
                 if (text && text.length > 50) {
                   const ytData = JSON.parse(text);
                   transcript = ytData?.events
