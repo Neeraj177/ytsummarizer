@@ -24,20 +24,8 @@ public class VideoVisionExtractor {
         String framePattern = uniqueFolder + File.separator + "frame_%03d.jpg";
 
         try {
-            // 🚀 Step 1 — Download video with yt-dlp (Failsafe Windows command selection)
             String osName = System.getProperty("os.name").toLowerCase();
             String dlpCommand = osName.contains("win") ? "yt-dlp.exe" : "yt-dlp";
-            String cookiesPath = "/etc/secrets/cookies.txt";
-            String writableCookies = "/tmp/cookies.txt";
-            try {
-                java.nio.file.Files.copy(
-                        java.nio.file.Paths.get(cookiesPath),
-                        java.nio.file.Paths.get(writableCookies),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (Exception e) {
-                System.out.println("[Vision-Engine] Cookies copy failed: " + e.getMessage());
-            }
 
             System.out.println("[Vision-Engine] Executing video download via: " + dlpCommand);
 
@@ -45,7 +33,7 @@ public class VideoVisionExtractor {
                     dlpCommand,
                     "-f", "worst[ext=mp4]/worst",
                     "--no-playlist",
-                    "--cookies", "/tmp/cookies.txt",
+                    "--ies", "Invidious,InvidiousPlaylist,default,-youtube,-youtubeplaylist",
                     "-o", videoPath,
                     "https://www.youtube.com/watch?v=" + videoId
             );
@@ -55,17 +43,15 @@ public class VideoVisionExtractor {
             BufferedReader dlpReader = new BufferedReader(new InputStreamReader(dlpProcess.getInputStream()));
             String line;
             while ((line = dlpReader.readLine()) != null) {
-                System.out.println("[yt-dlp-stream] " + line); // ◄── Is bar poora log stream print hoga debug ke liye
+                System.out.println("[yt-dlp-stream] " + line);
             }
             dlpReader.close();
             int dlpExitCode = dlpProcess.waitFor();
             System.out.println("[Vision-Engine] yt-dlp exit execution code: " + dlpExitCode);
 
-            // 📑 RISK GUARD GATEWAY: Check karo download kamyab hua ya nahi
             File downloadedVideo = new File(videoPath);
             if (!downloadedVideo.exists() || downloadedVideo.length() == 0) {
                 System.err.println("[Vision-Engine] Failsafe Guard Triggered: video.mp4 disk par nahi mili!");
-                // Agar bina extension ke cache save hua ho (.mp4.mp4 issue check)
                 File altVideo = new File(videoPath + ".mp4");
                 if (altVideo.exists()) {
                     altVideo.renameTo(downloadedVideo);
@@ -75,15 +61,14 @@ public class VideoVisionExtractor {
                 }
             }
 
-            // 🚀 Step 2 — Extract frames with ffmpeg directly
             String ffmpegCmd = osName.contains("win") ? "ffmpeg.exe" : "ffmpeg";
             ProcessBuilder ffmpegPb = new ProcessBuilder(
                     ffmpegCmd,
-                    "-y",                       // Overwrite target if exists
+                    "-y",
                     "-i", videoPath,
-                    "-vf", "fps=1/10",          // 1 frame every 10 seconds
-                    "-q:v", "2",                // JPEG quality
-                    "-frames:v", "10",          // Max 10 frames
+                    "-vf", "fps=1/10",
+                    "-q:v", "2",
+                    "-frames:v", "10",
                     framePattern
             );
             ffmpegPb.redirectErrorStream(true);
@@ -95,7 +80,6 @@ public class VideoVisionExtractor {
             ffmpegReader.close();
             ffmpegProcess.waitFor();
 
-            // Step 3 — Collect extracted frames
             File[] files = folder.listFiles();
             if (files != null) {
                 for (File f : files) {
