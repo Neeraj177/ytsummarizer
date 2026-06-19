@@ -34,6 +34,7 @@ public class VideoVisionExtractor {
                     "-f", "worst[ext=mp4]/worst",
                     "--no-playlist",
                     "--ies", "Invidious,InvidiousPlaylist,default,-youtube,-youtubeplaylist",
+                    "--extractor-args", "invidious:instance=yewtu.be",  // ← Working instance specify karo
                     "-o", videoPath,
                     "https://www.youtube.com/watch?v=" + videoId
             );
