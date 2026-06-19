@@ -1,6 +1,3 @@
-# ========================================================
-# STEP 1: Build the Spring Boot JAR using Maven
-# ========================================================
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
@@ -9,9 +6,6 @@ COPY src ./src
 
 RUN mvn clean package -DskipTests
 
-# ========================================================
-# STEP 2: Create final execution image with runtime binaries
-# ========================================================
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
@@ -30,15 +24,18 @@ RUN ln -s /usr/local/bin/youtube_transcript_api /usr/bin/youtube_transcript_api
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && chmod a+rx /usr/local/bin/yt-dlp
 
-# Deno install karo yt-dlp JS runtime ke liye
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh \
     && ln -s /usr/local/bin/deno /usr/bin/deno
 ENV DENO_INSTALL=/usr/local
 
-# ✅ Invidious fallback plugin install karo
 RUN pip3 install yt-dlp-invidious
 
 COPY --from=build /app/target/*.jar app.jar
+
+# ✅ Non-root user banao
+RUN useradd -m -u 10014 appuser
+RUN chown -R appuser:appuser /app
+USER 10014
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
