@@ -139,4 +139,46 @@ public class AiSummarizerServiceImpl implements AiSummarizerService {
             throw new RuntimeException("Gemini Chat Matrix failed: " + e.getMessage());
         }
     }
+    @Override
+    public String generateAudioSummary(File audioFile) {
+        try {
+            if (audioFile == null || !audioFile.exists()) {
+                return "⚠️ Audio file context is missing or download failed.";
+            }
+
+            System.out.println("[Gemini-Audio] Dispatching audio binary stream to Gemini 2.5 Flash...");
+
+            String audioPrompt = """
+        You are an expert audio intelligence AI. Listen to this extracted audio stream carefully.
+        The audio belongs to a YouTube video. 
+        
+        Generate a highly detailed, professional markdown comprehensive summary in English covering:
+        1. Main topics discussed.
+        2. Key takeaways, code walk-throughs, or steps mentioned.
+        3. A final structured wrap-up.
+        """;
+
+            // Spring AI Media wrapper se direct binary stream link kar rahe hain
+            org.springframework.ai.content.Media audioMedia = org.springframework.ai.content.Media.builder()
+                    .mimeType(org.springframework.util.MimeTypeUtils.parseMimeType("audio/mpeg")) // Fits MP3 format
+                    .data(new org.springframework.core.io.FileSystemResource(audioFile))
+                    .build();
+
+            org.springframework.ai.chat.messages.UserMessage message = org.springframework.ai.chat.messages.UserMessage.builder()
+                    .text(audioPrompt)
+                    .media(java.util.List.of(audioMedia))
+                    .build();
+
+            org.springframework.ai.chat.model.ChatResponse response = chatModel.call(new org.springframework.ai.chat.prompt.Prompt(message));
+
+            if (response != null && response.getResult() != null && response.getResult().getOutput() != null) {
+                return response.getResult().getOutput().getText();
+            }
+
+            return "⚠️ Audio engine returned an empty summary template.";
+
+        } catch (Exception e) {
+            throw new RuntimeException("Gemini Audio processing pipeline failed: " + e.getMessage());
+        }
+    }
 }
