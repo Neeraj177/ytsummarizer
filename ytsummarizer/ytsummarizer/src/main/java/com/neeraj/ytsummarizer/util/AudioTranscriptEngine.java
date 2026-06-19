@@ -17,17 +17,32 @@ public class AudioTranscriptEngine {
             String osName = System.getProperty("os.name").toLowerCase();
             String dlpCommand = osName.contains("win") ? "yt-dlp.exe" : "yt-dlp";
 
-            // Download raw audio tracks cleanly using native yt-dlp
+            // 🚀 THE PRO CLOUD FIX: Real User-Agent, custom headers aur extract format mapping
             ProcessBuilder downloadBuilder = new ProcessBuilder(
                     dlpCommand,
                     "-x", // Extract audio only
                     "--audio-format", "mp3",
-                    "--audio-quality", "9", // Low quality taaki file size chota rahe aur fast upload ho
+                    "--audio-quality", "9",
+                    "--no-playlist",
+                    // 🔥 Fake browser signature taaki Render ka cloud IP block na ho audio fetch karte waqt
+                    "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "--referer", "https://www.google.com/",
                     "-o", audioOutputPattern + ".%(ext)s",
                     "https://www.youtube.com/watch?v=" + videoId
             );
 
+            // Stream logs capturing to see what yt-dlp says on Render cloud
+            downloadBuilder.redirectErrorStream(true);
             Process downloadProcess = downloadBuilder.start();
+
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(downloadProcess.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("[yt-dlp-audio-stream] " + line); // Yeh cloud dashboard par puri trace dikhayega
+            }
+            reader.close();
+
             int exitCode = downloadProcess.waitFor();
 
             File fileCheck = new File(expectedAudioFile);
@@ -36,7 +51,7 @@ public class AudioTranscriptEngine {
                 return fileCheck;
             }
 
-            System.err.println("[Audio-Engine] yt-dlp execution finished but file missing or failed.");
+            System.err.println("[Audio-Engine] yt-dlp execution finished with exit code " + exitCode + " but file missing.");
             return null;
         } catch (Exception e) {
             System.err.println("[Audio-Engine] Critical failure downloading audio: " + e.getMessage());
