@@ -36,7 +36,7 @@ public class VideoAsyncWorkerImpl implements VideoAsyncWorker {
             System.out.println("[" + Thread.currentThread().getName() + "] Job " + jobId + " → PROCESSING");
 
             String transcript = com.neeraj.ytsummarizer.util.YouTubeTranscriptExtractor
-                    .getTranscriptByVideoId(job.getVideoId());
+                    .extractTranscript(job.getVideoId());
 
             String finalSummaryResult;
 
@@ -103,7 +103,7 @@ public class VideoAsyncWorkerImpl implements VideoAsyncWorker {
             } else {
                 // Backend se extract karo pahle
                 String liveTranscript = com.neeraj.ytsummarizer.util.YouTubeTranscriptExtractor
-                        .getTranscriptByVideoId(job.getVideoId());
+                        .extractTranscript(job.getVideoId());
 
                 if (liveTranscript != null && !liveTranscript.trim().isEmpty()) {
                     System.out.println("[Worker] Backend transcript found! Length: " + liveTranscript.length());

@@ -17,14 +17,16 @@ spring:
       hibernate:
         format_sql: true
 
-  # Live Spring AI configuration linked to Google Gemini
   ai:
     google:
       genai:
         api-key: ${GEMINI_API_KEY:PLACEHOLDER_KEY}
         chat:
           options:
-            model: gemini-2.5-flash   # ← cheapest, fastest, free tier friendly
+            model: gemini-2.5-flash
           retry:
             max-attempts: 1
-#
+
+# Parallel configuration block for Scraping API
+scrapingant:
+  api-key: ${SCRAPING_ANT_API_KEY:PLACEHOLDER_KEY}
