@@ -14,6 +14,7 @@ import java.util.Map;
 
 public class YouTubeTranscriptExtractor {
 
+    // ✅ Cookies file ko resources se /tmp mein copy karo
     private static String getWritableCookiesPath() {
         try {
             String tmpDir = System.getProperty("java.io.tmpdir");
@@ -41,6 +42,33 @@ public class YouTubeTranscriptExtractor {
         }
     }
 
+    // ✅ Python script ko resources se /tmp mein copy karo
+    private static String getWritablePythonScriptPath() {
+        try {
+            String tmpDir = System.getProperty("java.io.tmpdir");
+            String targetPath = tmpDir + File.separator + "transcript_fetcher.py";
+            File targetFile = new File(targetPath);
+
+            // Hamesha fresh copy rakho taaki updates reflect ho
+            InputStream is = YouTubeTranscriptExtractor.class
+                    .getClassLoader()
+                    .getResourceAsStream("transcript_fetcher.py");
+
+            if (is != null) {
+                Files.copy(is, Paths.get(targetPath), StandardCopyOption.REPLACE_EXISTING);
+                is.close();
+                System.out.println("[Transcript-Extractor] Python script loaded from resources ✅");
+            } else {
+                System.out.println("[Transcript-Extractor] No transcript_fetcher.py found in resources.");
+                return null;
+            }
+            return targetPath;
+        } catch (Exception e) {
+            System.out.println("[Transcript-Extractor] Script setup failed: " + e.getMessage());
+            return null;
+        }
+    }
+
     public static String getTranscriptByVideoId(String videoId) {
         StringBuilder scriptOutput = new StringBuilder();
 
@@ -51,15 +79,20 @@ public class YouTubeTranscriptExtractor {
             String pythonCmd = osName.contains("win") ? "python" : "python3";
 
             String cookiesPath = getWritableCookiesPath();
+            String scriptPath = getWritablePythonScriptPath();
 
+            if (scriptPath == null) {
+                System.out.println("[Transcript-Extractor] Script missing, cannot proceed.");
+                return "";
+            }
+
+            // ✅ Naya custom Python script call karo, CLI module ki jagah
             List<String> command = new ArrayList<>(Arrays.asList(
-                    pythonCmd, "-m", "youtube_transcript_api",
-                    videoId,
-                    "--languages", "en", "hi", "en-IN"
+                    pythonCmd, scriptPath,
+                    videoId
             ));
 
             if (cookiesPath != null) {
-                command.add("--cookies");
                 command.add(cookiesPath);
                 System.out.println("[Transcript-Extractor] Using bundled cookies ✅");
             }
@@ -74,18 +107,7 @@ public class YouTubeTranscriptExtractor {
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"));
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.contains("\"text\":")) {
-                    String cleanText = line.replaceAll(".*\"text\":\\s*\"", "")
-                            .replaceAll("\",\\s*\"start\".*", "")
-                            .replaceAll("\\\\n", " ")
-                            .trim();
-                    if (!cleanText.isEmpty()) {
-                        scriptOutput.append(cleanText).append(" ");
-                    }
-                } else if (!line.trim().startsWith("[") && !line.trim().startsWith("]")
-                        && !line.trim().startsWith("{") && !line.trim().startsWith("}")) {
-                    scriptOutput.append(line.trim()).append(" ");
-                }
+                scriptOutput.append(line.trim()).append(" ");
             }
             reader.close();
 
@@ -103,13 +125,11 @@ public class YouTubeTranscriptExtractor {
 
             if (exitCode != 0 ||
                     result.isEmpty() ||
-                    errorLog.toString().contains("CouldNotRetrieveTranscript") ||
+                    result.contains("ERROR:") ||
                     result.contains("IP") ||
                     result.contains("blocked") ||
                     result.contains("Could not retrieve") ||
-                    result.contains("YouTubeTranscriptApi") ||
-                    result.contains("Subtitles are disabled") ||
-                    result.contains("raised")) {
+                    result.contains("Subtitles are disabled")) {
                 System.out.println("[Transcript-Extractor] No captions found. Error: " + errorLog.toString().trim());
                 return "";
             }
