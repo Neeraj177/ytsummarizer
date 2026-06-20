@@ -17,7 +17,7 @@ public class AudioTranscriptEngine {
         String expectedAudioFile = audioOutputPattern + ".mp3";
         String extractedCookiesPath = tempDir + File.separator + "youtube-cookies.txt";
 
-        System.out.println("[Audio-Engine] Initializing Low-Memory Audio Flow for: " + videoId);
+        System.out.println("[Audio-Engine] Initializing Standard Audio Flow for: " + videoId);
 
         try {
             File cookieFileTarget = new File(extractedCookiesPath);
@@ -34,19 +34,18 @@ public class AudioTranscriptEngine {
 
             List<String> command = new ArrayList<>();
             command.add(dlpCommand);
+
+            // 🚀 THE FIX: Fallback formatting strategies to skip client decryption restrictions
+            command.add("-f");
+            command.add("bestaudio/best");
+
             command.add("-x");
             command.add("--audio-format");
             command.add("mp3");
             command.add("--audio-quality");
             command.add("9");
             command.add("--no-playlist");
-
-            // 🚀 LOW RAM / ANTI-LEAK BYPASS FLAGS:
-            // Force mobile client endpoints to avoid rendering dynamic desktop JS layout tokens
-            command.add("--extractor-args");
-            command.add("youtube:player-client=ios,android;skip=dash,hls");
             command.add("--no-check-certificates");
-            command.add("--prefer-free-formats");
 
             if (cookieFileTarget.exists() && cookieFileTarget.length() > 0) {
                 command.add("--cookies");
