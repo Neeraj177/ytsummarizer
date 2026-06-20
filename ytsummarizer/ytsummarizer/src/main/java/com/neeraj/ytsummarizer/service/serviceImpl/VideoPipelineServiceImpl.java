@@ -24,29 +24,7 @@ public class VideoPipelineServiceImpl implements VideoPipelineService {
         this.asyncWorker = asyncWorker;
     }
 
-    @Override
-    public JobStatusResponse initializeJob(String youtubeUrl, UUID userId) {
-        String videoId = extractVideoId(youtubeUrl);
 
-        VideoJob job = VideoJob.builder()
-                .userId(userId)
-                .youtubeUrl(youtubeUrl)
-                .videoId(videoId)
-                .status(JobStatus.PENDING)
-                .build();
-
-        VideoJob savedJob = videoJobRepository.save(job);
-
-        // KICK OFF ASYNC THREAD WORKER RUNTIME HERE
-        asyncWorker.processVideoAsynchronously(savedJob.getId());
-
-        return JobStatusResponse.builder()
-                .jobId(savedJob.getId())
-                .videoId(savedJob.getVideoId())
-                .status(savedJob.getStatus())
-                .summary(savedJob.getSummary())
-                .build();
-    }
 
     @Override
     public JobStatusResponse getJobStatus(UUID jobId) {

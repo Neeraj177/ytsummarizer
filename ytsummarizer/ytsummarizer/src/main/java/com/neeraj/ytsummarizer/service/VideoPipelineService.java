@@ -4,7 +4,7 @@ import com.neeraj.ytsummarizer.dto.JobStatusResponse;
 import java.util.UUID;
 
 public interface VideoPipelineService {
-    JobStatusResponse initializeJob(String youtubeUrl, UUID userId);
+
     JobStatusResponse getJobStatus(UUID jobId);
     JobStatusResponse initializeJob(String youtubeUrl, String transcript, UUID userId);
 }

@@ -23,11 +23,7 @@ public class VideoController {
     @PostMapping("/process")
     public ResponseEntity<JobStatusResponse> processVideo(@RequestBody VideoRequest request) {
         UUID defaultUserId = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        JobStatusResponse response = pipelineService.initializeJob(
-                request.getUrl(),
-                request.getTranscript(), // ← transcript pass karo
-                defaultUserId
-        );
+        JobStatusResponse response = pipelineService.initializeJob(request.getUrl(), request.getTranscript(), defaultUserId);
         return ResponseEntity.accepted().body(response);
     }
 
