@@ -1,38 +1,70 @@
 package com.neeraj.ytsummarizer.util;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public class YouTubeTranscriptExtractor {
 
+    private static String getWritableCookiesPath() {
+        try {
+            String tmpDir = System.getProperty("java.io.tmpdir");
+            String targetPath = tmpDir + File.separator + "youtube-cookies.txt";
+            File targetFile = new File(targetPath);
+
+            if (!targetFile.exists()) {
+                InputStream is = YouTubeTranscriptExtractor.class
+                        .getClassLoader()
+                        .getResourceAsStream("youtube-cookies.txt");
+
+                if (is != null) {
+                    Files.copy(is, Paths.get(targetPath), StandardCopyOption.REPLACE_EXISTING);
+                    is.close();
+                    System.out.println("[Transcript-Extractor] Cookies loaded from resources ✅");
+                } else {
+                    System.out.println("[Transcript-Extractor] No cookies file found in resources.");
+                    return null;
+                }
+            }
+            return targetPath;
+        } catch (Exception e) {
+            System.out.println("[Transcript-Extractor] Cookies setup failed: " + e.getMessage());
+            return null;
+        }
+    }
+
     public static String getTranscriptByVideoId(String videoId) {
         StringBuilder scriptOutput = new StringBuilder();
+
         try {
             System.out.println("[Transcript-Extractor] Attempting caption extraction for: " + videoId);
 
             String osName = System.getProperty("os.name").toLowerCase();
             String pythonCmd = osName.contains("win") ? "python" : "python3";
-            // Cookies file ko writable location pe copy karo
-            String cookiesSource = "/etc/secrets/cookies.txt";
-            String writableCookies = "/tmp/cookies.txt";
-            try {
-                java.nio.file.Files.copy(
-                        java.nio.file.Paths.get(cookiesSource),
-                        java.nio.file.Paths.get(writableCookies),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (Exception e) {
-                System.out.println("[Transcript-Extractor] Cookies copy failed: " + e.getMessage());
-            }
 
-            // CC + Auto-generated dono try karega automatically
-            ProcessBuilder pb = new ProcessBuilder(
+            String cookiesPath = getWritableCookiesPath();
+
+            List<String> command = new ArrayList<>(Arrays.asList(
                     pythonCmd, "-m", "youtube_transcript_api",
                     videoId,
-                    "--languages", "en", "hi", "en-IN" ,
-                    "--cookies", "/tmp/cookies.txt"
-            );
+                    "--languages", "en", "hi", "en-IN"
+            ));
+
+            if (cookiesPath != null) {
+                command.add("--cookies");
+                command.add(cookiesPath);
+                System.out.println("[Transcript-Extractor] Using bundled cookies ✅");
+            }
+
+            ProcessBuilder pb = new ProcessBuilder(command);
 
             Map<String, String> env = pb.environment();
             env.put("PYTHONIOENCODING", "utf-8");
@@ -78,7 +110,7 @@ public class YouTubeTranscriptExtractor {
                     result.contains("YouTubeTranscriptApi") ||
                     result.contains("Subtitles are disabled") ||
                     result.contains("raised")) {
-                System.out.println("[Transcript-Extractor] No captions found. Triggering Frame Extraction...");
+                System.out.println("[Transcript-Extractor] No captions found. Error: " + errorLog.toString().trim());
                 return "";
             }
 
