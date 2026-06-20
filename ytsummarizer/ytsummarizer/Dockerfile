@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install youtube-transcript-api
+RUN pip3 install youtube-transcript-api requests
 
 RUN ln -s /usr/local/bin/youtube_transcript_api /usr/bin/youtube_transcript_api
 
@@ -32,7 +32,6 @@ RUN pip3 install yt-dlp-invidious
 
 COPY --from=build /app/target/*.jar app.jar
 
-# ✅ Non-root user banao
 RUN useradd -m -u 10014 appuser
 RUN chown -R appuser:appuser /app
 USER 10014
