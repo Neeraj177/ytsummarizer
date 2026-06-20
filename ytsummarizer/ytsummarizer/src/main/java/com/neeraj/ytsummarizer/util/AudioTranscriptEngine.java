@@ -17,20 +17,16 @@ public class AudioTranscriptEngine {
         String expectedAudioFile = audioOutputPattern + ".mp3";
         String extractedCookiesPath = tempDir + File.separator + "youtube-cookies.txt";
 
-        System.out.println("[Audio-Engine] Initializing Secure Audio Ingestion Flow for: " + videoId);
+        System.out.println("[Audio-Engine] Initializing Low-Memory Audio Flow for: " + videoId);
 
         try {
-            // 🚀 THE MAGIC BRIDGE: Extract cookies from inside JAR to /tmp folder for yt-dlp
             File cookieFileTarget = new File(extractedCookiesPath);
             try (InputStream is = AudioTranscriptEngine.class.getResourceAsStream("/youtube-cookies.txt")) {
                 if (is != null) {
                     Files.copy(is, cookieFileTarget.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    System.out.println("[Audio-Engine] Cookies successfully extracted to temp space for binary consumption.");
-                } else {
-                    System.err.println("[Audio-Engine] ⚠️ Warning: youtube-cookies.txt not found in resources!");
                 }
             } catch (Exception e) {
-                System.err.println("[Audio-Engine] Error copying cookies to temp disk: " + e.getMessage());
+                System.err.println("[Audio-Engine] Cookies copy failed: " + e.getMessage());
             }
 
             String osName = System.getProperty("os.name").toLowerCase();
@@ -45,11 +41,16 @@ public class AudioTranscriptEngine {
             command.add("9");
             command.add("--no-playlist");
 
-            // Pass the extracted file path directly to yt-dlp arguments block
+            // 🚀 LOW RAM / ANTI-LEAK BYPASS FLAGS:
+            // Force mobile client endpoints to avoid rendering dynamic desktop JS layout tokens
+            command.add("--extractor-args");
+            command.add("youtube:player-client=ios,android;skip=dash,hls");
+            command.add("--no-check-certificates");
+            command.add("--prefer-free-formats");
+
             if (cookieFileTarget.exists() && cookieFileTarget.length() > 0) {
                 command.add("--cookies");
                 command.add(cookieFileTarget.getAbsolutePath());
-                System.out.println("[Audio-Engine] Live session authentication cookies injected into yt-dlp pipeline.");
             }
 
             command.add("-o");
@@ -70,7 +71,6 @@ public class AudioTranscriptEngine {
 
             int exitCode = downloadProcess.waitFor();
 
-            // Temp session file cleanup after operation loops finish execution
             if (cookieFileTarget.exists()) {
                 cookieFileTarget.delete();
             }
@@ -81,7 +81,7 @@ public class AudioTranscriptEngine {
             }
             return null;
         } catch (Exception e) {
-            System.err.println("[Audio-Engine] Audio framework execution exception: " + e.getMessage());
+            System.err.println("[Audio-Engine] Execution exception: " + e.getMessage());
             return null;
         }
     }
