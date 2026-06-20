@@ -26,23 +26,36 @@ public class AiSummarizerServiceImpl implements AiSummarizerService {
     }
 
     @Override
-    public String generateSummary(String transcript) {
-        if (transcript == null || transcript.trim().isEmpty()) {
+    public String generateSummary(String input) {
+        if (input == null || input.trim().isEmpty()) {
             return "No content available to summarize.";
         }
 
-        String prompt = """
-    You are an expert content summarizer. Analyze the provided video transcript and generate a response in this exact format:
+        String basePrompt = """
+    You are an expert content summarizer. Generate a response in this exact format:
     
     ## 📌 Summary
     Write a detailed paragraph covering everything discussed in the video. Include all main points, 
     examples, explanations, and conclusions. This should be comprehensive enough that someone who 
-    hasn't watched the video understands the complete content. Write in English regardless of transcript language.
+    hasn't watched the video understands the complete content. Write in English regardless of original language.
     
-    ## 📝 Full Transcript
-    """ + transcript;
+    """;
 
-        return chatModel.call(new Prompt(prompt))
+        String fullPrompt;
+
+        if (input.startsWith("https://www.youtube.com")) {
+            // ✅ Direct YouTube URL — Gemini khud video access karega
+            fullPrompt = basePrompt + """
+        
+        IMPORTANT: Watch and analyze this exact YouTube video and summarize its actual content.
+        Do NOT generate a generic summary based on the title alone.
+        
+        YouTube Video URL: """ + input;
+        } else {
+            fullPrompt = basePrompt + "\n## 📝 Full Transcript\n" + input;
+        }
+
+        return chatModel.call(new Prompt(fullPrompt))
                 .getResult()
                 .getOutput()
                 .getText();

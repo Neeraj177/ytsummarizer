@@ -129,4 +129,45 @@ public class VideoAsyncWorkerImpl implements VideoAsyncWorker {
             markJobFailed(jobId, e.getMessage());
         }
     }
+
+    @Async("videoJobExecutor")
+    public void processVideoAsynchronously(UUID jobId, String transcript, String poToken) {
+        try {
+            VideoJob job = videoJobRepository.findById(jobId)
+                    .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
+
+            job.setStatus(JobStatus.PROCESSING);
+            videoJobRepository.save(job);
+
+            String finalSummaryResult;
+
+            if (transcript != null && !transcript.trim().isEmpty()) {
+                System.out.println("[Worker] Frontend transcript received! Length: " + transcript.length());
+                finalSummaryResult = aiSummarizerService.generateSummary(transcript);
+            } else {
+                String liveTranscript = com.neeraj.ytsummarizer.util.YouTubeTranscriptExtractor
+                        .getTranscriptByVideoId(job.getVideoId());
+
+                if (liveTranscript != null && !liveTranscript.trim().isEmpty()) {
+                    System.out.println("[Worker] Backend transcript found! Length: " + liveTranscript.length());
+                    finalSummaryResult = aiSummarizerService.generateSummary(liveTranscript);
+                } else {
+                    // ✅ Gemini ko directly YouTube URL do — IP block bypass hoga
+                    System.out.println("[Worker] No transcript found anywhere. Sending YouTube URL directly to Gemini...");
+                    String youtubeUrl = "https://www.youtube.com/watch?v=" + job.getVideoId();
+                    finalSummaryResult = aiSummarizerService.generateSummary(youtubeUrl);
+                }
+            }
+
+            job.setSummary(finalSummaryResult);
+            job.setStatus(finalSummaryResult.contains("### ⚠️ Pipeline Failure")
+                    ? JobStatus.FAILED : JobStatus.COMPLETED);
+            videoJobRepository.save(job);
+            System.out.println("[Worker] Job " + jobId + " → " + job.getStatus());
+
+        } catch (Exception e) {
+            System.err.println("Critical failure for job " + jobId + ": " + e.getMessage());
+            markJobFailed(jobId, e.getMessage());
+        }
+    }
 }
