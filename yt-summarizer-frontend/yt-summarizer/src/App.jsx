@@ -1,6 +1,7 @@
 import { useState } from "react";
 import LandingView from "./components/LandingView";
 import DashboardView from "./components/DashboardView";
+import { ThemeProvider } from "./ThemeContext";
 
 const SCREENS = {
   LANDING: "LANDING",
@@ -24,15 +25,17 @@ export default function App() {
     setVideoUrl("");
   };
 
-  if (screen === SCREENS.DASHBOARD && jobData) {
-    return (
-      <DashboardView
-        initialJob={jobData}
-        videoUrl={videoUrl}
-        onBack={handleBack}
-      />
-    );
-  }
-
-  return <LandingView onJobCreated={handleJobCreated} />;
+  return (
+    <ThemeProvider>
+      {screen === SCREENS.DASHBOARD && jobData ? (
+        <DashboardView
+          initialJob={jobData}
+          videoUrl={videoUrl}
+          onBack={handleBack}
+        />
+      ) : (
+        <LandingView onJobCreated={handleJobCreated} />
+      )}
+    </ThemeProvider>
+  );
 }
